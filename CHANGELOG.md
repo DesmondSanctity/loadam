@@ -4,6 +4,12 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-01
+
+### Fixed
+
+- `loadam --version` now reports the actual package version instead of a hardcoded `0.0.0`. Version is injected at build time from [packages/cli/package.json](packages/cli/package.json) via tsup `define`.
+
 ## [0.1.1] - 2026-05-01
 
 ### Changed

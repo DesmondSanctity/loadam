@@ -9,7 +9,8 @@ import { registerTestCommand } from "./commands/test.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { banner } from "./util/banner.js";
 
-const VERSION = "0.0.0";
+declare const __LOADAM_VERSION__: string;
+const VERSION = typeof __LOADAM_VERSION__ === "string" ? __LOADAM_VERSION__ : "0.0.0";
 
 export function buildProgram(): Command {
   const program = new Command();
