@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+ title: Multi Server Bookstore
+ version: 0.1.0
+ description: Exercises bearer auth, multiple servers, and a small resource graph.
+servers:
+ - url: https://api.bookstore.example.com/v1
+   description: Production
+ - url: https://staging.bookstore.example.com/v1
+   description: Staging
+components:
+ securitySchemes:
+  bearerAuth:
+   type: http
+   scheme: bearer
+   bearerFormat: JWT
+ schemas:
+  Book:
+   type: object
+   required: [id, title]
+   properties:
+    id:
+     type: string
+    title:
+     type: string
+    author:
+     type: string
+  NewBook:
+   type: object
+   required: [title]
+   properties:
+    title:
+     type: string
+    author:
+     type: string
+security:
+ - bearerAuth: []
+paths:
+ /books:
+  get:
+   operationId: listBooks
+   summary: List books
+   parameters:
+    - name: limit
+      in: query
+      schema:
+       type: integer
+   responses:
+    '200':
+     description: OK
+     content:
+      application/json:
+       schema:
+        type: array
+        items:
+         $ref: '#/components/schemas/Book'
+  post:
+   operationId: createBook
+   summary: Create a book
+   requestBody:
+    required: true
+    content:
+     application/json:
+      schema:
+       $ref: '#/components/schemas/NewBook'
+   responses:
+    '201':
+     description: Created
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Book'
+ /books/{bookId}:
+  get:
+   operationId: getBook
+   summary: Get a book
+   parameters:
+    - name: bookId
+      in: path
+      required: true
+      schema:
+       type: string
+   responses:
+    '200':
+     description: OK
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Book'
+  delete:
+   operationId: deleteBook
+   summary: Delete a book
+   parameters:
+    - name: bookId
+      in: path
+      required: true
+      schema:
+       type: string
+   responses:
+    '204':
+     description: Deleted

@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Full guard before push: lint + build + test must all pass.
+# To bypass in an emergency: git push --no-verify
+echo "[husky] pre-push: pnpm lint"
+pnpm lint || exit 1
+echo "[husky] pre-push: pnpm -r build"
+pnpm -r build || exit 1
+echo "[husky] pre-push: pnpm -r test"
+pnpm -r test || exit 1

@@ -1,0 +1,92 @@
+name: Release
+
+on:
+ push:
+  branches: [ main ]
+
+# Allow only one release run at a time; cancel stale runs.
+concurrency:
+ group: release
+ cancel-in-progress: false
+
+jobs:
+ release:
+  runs-on: ubuntu-latest
+  permissions:
+   contents: write # for creating the git tag + GitHub Release
+   id-token: write # for npm provenance
+  steps:
+   - uses: actions/checkout@v4
+     with:
+      fetch-depth: 0
+
+   - uses: pnpm/action-setup@v4
+     with:
+      version: 9.15.0
+
+   - uses: actions/setup-node@v4
+     with:
+      node-version: 22
+      registry-url: https://registry.npmjs.org
+      cache: pnpm
+
+   - name: Install
+     run: pnpm install --frozen-lockfile
+
+   - name: Lint
+     run: pnpm lint
+
+   - name: Build
+     run: pnpm -r build
+
+   - name: Test
+     run: pnpm -r test
+
+   - name: Read local CLI version
+     id: local
+     run: echo "version=$(node -p "require('./packages/cli/package.json').version")"
+      >> "$GITHUB_OUTPUT"
+
+   - name: Read published CLI version
+     id: published
+     run: |
+      v=$(npm view @loadam/cli version 2>/dev/null || echo "0.0.0")
+      echo "version=$v" >> "$GITHUB_OUTPUT"
+
+   - name: Decide whether to publish
+     id: decide
+     run: |
+      if [ "${{ steps.local.outputs.version }}" = "${{ steps.published.outputs.version }}" ]; then
+       echo "publish=false" >> "$GITHUB_OUTPUT"
+       echo "Local version ${{ steps.local.outputs.version }} matches published; skipping."
+      elif [ "${{ steps.local.outputs.version }}" = "0.0.0" ]; then
+       echo "publish=false" >> "$GITHUB_OUTPUT"
+       echo "Local version is 0.0.0 (placeholder); skipping."
+      else
+       echo "publish=true" >> "$GITHUB_OUTPUT"
+       echo "Will publish ${{ steps.local.outputs.version }} (currently published: ${{ steps.published.outputs.version }})."
+      fi
+
+   - name: Publish to npm (Trusted Publishing via OIDC)
+     if: steps.decide.outputs.publish == 'true'
+     working-directory: packages/cli
+     run: |
+      # Trusted Publishing requires npm >= 11.5.1; setup-node@v4 ships an older npm.
+      npm install -g npm@latest
+      npm publish --access public --provenance
+
+   - name: Tag release
+     if: steps.decide.outputs.publish == 'true'
+     run: |
+      git config user.name "github-actions[bot]"
+      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      git tag "v${{ steps.local.outputs.version }}"
+      git push origin "v${{ steps.local.outputs.version }}"
+
+   - name: Create GitHub Release
+     if: steps.decide.outputs.publish == 'true'
+     uses: softprops/action-gh-release@v2
+     with:
+      tag_name: v${{ steps.local.outputs.version }}
+      name: v${{ steps.local.outputs.version }}
+      generate_release_notes: true

@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+ title: Stale Petstore Fixture
+ version: 1.0.0
+ description: Deliberately-drifted petstore — declares an extra required field
+  `species` on Pet that no real petstore implementation returns.
+servers:
+ - url: http://localhost:4010
+paths:
+ /pets:
+  get:
+   operationId: listPets
+   summary: List pets
+   responses:
+    '200':
+     description: ok
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Pets'
+    default:
+     description: error
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Error'
+ /pets/{petId}:
+  get:
+   operationId: showPetById
+   summary: Show pet by id
+   parameters:
+    - name: petId
+      in: path
+      required: true
+      schema:
+       type: string
+   responses:
+    '200':
+     description: ok
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Pet'
+    default:
+     description: error
+     content:
+      application/json:
+       schema:
+        $ref: '#/components/schemas/Error'
+components:
+ securitySchemes:
+  apiKeyAuth:
+   type: apiKey
+   in: header
+   name: X-API-Key
+ schemas:
+  Pet:
+   type: object
+   # `species` is the deliberate drift — the live API never returns it.
+   required: [id, name, species]
+   properties:
+    id:
+     type: integer
+     format: int64
+    name:
+     type: string
+    species:
+     type: string
+    tag:
+     type: string
+  Pets:
+   type: array
+   items:
+    $ref: '#/components/schemas/Pet'
+  Error:
+   type: object
+   required: [code, message]
+   properties:
+    code:
+     type: integer
+    message:
+     type: string
+security:
+ - apiKeyAuth: []

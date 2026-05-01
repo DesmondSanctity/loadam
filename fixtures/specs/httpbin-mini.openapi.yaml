@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+ title: HTTPBin Mini
+ version: 1.0.0
+ description: A no-auth tiny spec — exercises basic GET/POST without security schemes.
+servers:
+ - url: https://httpbin.example.com
+paths:
+ /status/{code}:
+  get:
+   operationId: getStatus
+   summary: Returns the requested status code
+   parameters:
+    - name: code
+      in: path
+      required: true
+      schema:
+       type: integer
+       minimum: 100
+       maximum: 599
+   responses:
+    '200':
+     description: OK
+     content:
+      application/json:
+       schema:
+        type: object
+    default:
+     description: Status response
+ /headers:
+  get:
+   operationId: listHeaders
+   summary: Echo request headers
+   responses:
+    '200':
+     description: OK
+     content:
+      application/json:
+       schema:
+        type: object
+        properties:
+         headers:
+          type: object
+ /post:
+  post:
+   operationId: postEcho
+   summary: Echo a JSON body
+   requestBody:
+    required: true
+    content:
+     application/json:
+      schema:
+       type: object
+       properties:
+        message:
+         type: string
+       required: [message]
+   responses:
+    '200':
+     description: Echoed
+     content:
+      application/json:
+       schema:
+        type: object

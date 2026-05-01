@@ -1,0 +1,39 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+*.tsbuildinfo
+
+# test
+coverage/
+*.snap.tmp
+
+# editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# env
+.env
+.env.local
+.env.*.local
+
+# loadam outputs (generated)
+loadam-out/
+loadam-mcp-server/
+loadam.ir.json
+
+# private dev notes / generated demo assets
+internal/
+
+# README/LICENSE copies created by packages/cli prepack
+packages/cli/README.md
+packages/cli/LICENSE
