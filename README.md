@@ -8,11 +8,12 @@
 
 ```bash
 npm i -g loadam          # or: npx loadam ...
-loadam mcp ./openapi.yaml
-# 8 files written → cd loadam-out/mcp && npm install && node bin.js
+loadam test ./openapi.yaml --target https://api.example.com
+# Interactive: prompts for missing creds, runs k6 smoke, archives the session.
+loadam report --open     # Single-file HTML report with charts.
 ```
 
-That's it. One spec → three production-grade rigs. **One engine, two surfaces:**
+That's it. One spec → three production-grade rigs **plus** a session archive and an HTML report. **One engine, two surfaces:**
 
 - **Test surface** — adversarial. Break the API: load, perf, contract drift.
 - **Agent surface** — cooperative. Let LLM agents use the API safely via MCP (stdio + HTTP).
@@ -43,41 +44,53 @@ Requires Node.js 20+. The generated rigs have their own runtime requirements: **
 # 1. Inspect what loadam sees in your spec.
 loadam init ./openapi.yaml
 
-# 2. Generate a runnable k6 smoke + load test.
+# 2. Generate + run a k6 smoke test in one shot (interactive: prompts for creds).
 loadam test ./openapi.yaml --target https://api.example.com
-cd loadam-out/k6 && cp .env.example .env && k6 run smoke.js
 
-# 3. Generate a property-based Schemathesis contract suite.
+# 3. Browse archived runs and open the HTML report.
+loadam history
+loadam show latest
+loadam report latest --open
+
+# 4. Generate a property-based Schemathesis contract suite.
 loadam contract ./openapi.yaml --target https://api.example.com
 cd loadam-out/contract && pip install -e . && pytest
 
-# 4. Generate an MCP server. Read-only by default.
+# 5. Generate an MCP server. Read-only by default.
 loadam mcp ./openapi.yaml
 cd loadam-out/mcp && npm install && node bin.js          # stdio (Claude Desktop)
 node bin.js --http                                       # streamable HTTP
 
-# 5. Detect drift between spec and live API.
+# 6. Detect drift between spec and live API.
 loadam diff ./openapi.yaml --target https://api.example.com -o drift.md
 ```
 
-Every command supports `--json` for CI:
+Every command supports `--json` for CI, and `--no-interactive` to skip prompts:
 
 ```bash
-loadam mcp ./openapi.yaml --json | jq .toolNames
+loadam test ./openapi.yaml --target $LOADAM_TARGET --no-interactive --json | jq .sessionId
 ```
+
+Set `LOADAM_TARGET` once per shell to drop the `--target` flag from every invocation.
 
 ## Commands
 
-| Command                  | What it does                                                | Output                 |
-| ------------------------ | ----------------------------------------------------------- | ---------------------- |
-| `loadam init <spec>`     | Parse spec → IR with inferred resource graph                | `loadam.ir.json`       |
-| `loadam test <spec>`     | Compile to k6 smoke + load scripts (stateful, ID-threading) | `loadam-out/k6/`       |
-| `loadam contract <spec>` | Compile to a Schemathesis pytest project                    | `loadam-out/contract/` |
-| `loadam mcp <spec>`      | Compile to a runnable MCP server (stdio + HTTP)             | `loadam-out/mcp/`      |
-| `loadam diff <spec>`     | Probe a live API and report spec-vs-reality drift           | Markdown               |
-| `loadam auth import`     | Infer an auth profile from a `curl` command                 | JSON / pretty          |
-| `loadam update`          | Check npm for a newer version of `loadam`                   | text or `--json`       |
-| `loadam completion`      | Print bash/zsh/fish completion script                       | stdout                 |
+| Command                       | What it does                                                          | Output                            |
+| ----------------------------- | --------------------------------------------------------------------- | --------------------------------- |
+| `loadam init <spec>`          | Parse spec → IR with inferred resource graph                          | `loadam.ir.json`                  |
+| `loadam test <spec>`          | Compile + (optionally) run k6 smoke / load; archives the session      | `loadam-out/k6/` + session        |
+| `loadam contract <spec>`      | Compile to a Schemathesis pytest project                              | `loadam-out/contract/` + session  |
+| `loadam mcp <spec>`           | Compile to a runnable MCP server (stdio + HTTP)                       | `loadam-out/mcp/`                 |
+| `loadam diff <spec>`          | Probe a live API and report spec-vs-reality drift                     | Markdown + session                |
+| `loadam history`              | List archived sessions (newest first)                                 | table or `--json`                 |
+| `loadam show <id\|latest>`    | Show a session's metadata + inline k6/drift summary                   | text or `--json`                  |
+| `loadam report <id\|latest>`  | Render a single-file HTML report (charts, threshold table)            | `report.html` (`--open` to view)  |
+| `loadam clean`                | Prune session archive (`--older-than 7d`, `--dry-run` by default)     | text or `--json`                  |
+| `loadam auth import`          | Infer an auth profile from a `curl` command                           | JSON / pretty                     |
+| `loadam update`               | Check npm for a newer version of `loadam`                             | text or `--json`                  |
+| `loadam completion`           | Print bash/zsh/fish completion script                                 | stdout                            |
+
+Use `--no-interactive` on `test` to skip prompts (CI-safe), and set `LOADAM_TARGET` to avoid repeating `--target`.
 
 ## What you get from `loadam mcp`
 
@@ -99,6 +112,19 @@ loadam mcp ./openapi.yaml --json | jq .toolNames
  },
 }
 ```
+
+## Session archive & HTML reports
+
+Every `loadam test`, `loadam contract`, and `loadam diff` invocation is archived to `./loadam-out/sessions/<id>/` with the parsed IR, the exact spec source, command flags, exit code, and any artefacts the run produced (k6 summary JSON, drift markdown, contract findings). The archive is local-only — it never leaves disk.
+
+```bash
+loadam history                       # newest 20 sessions
+loadam show latest                   # inline k6 p95 / threshold pass-fail
+loadam report latest --open          # one-file HTML report (charts, dark mode)
+loadam clean --older-than 7d --apply # prune old runs
+```
+
+The HTML report is a single self-contained file (no external CDNs, no JS dependencies) and is safe to drop into a CI artefact store, gh-pages, or Slack.
 
 ## Why loadam
 
@@ -128,6 +154,7 @@ packages/
   test-contract/ Schemathesis compiler — emits pytest project
   test-drift/    Live probe + Markdown diff report
   mcp/           MCP compiler — emits stdio + HTTP server
+  report/        Pure-function HTML report renderer (no DOM dependency)
   cli/           commander-based CLI tying it all together
 ```
 
@@ -150,6 +177,7 @@ V1 (this) targets **petstore-class specs** end-to-end. Stripe-class specs (polym
 
 - [examples/basic-openapi](examples/basic-openapi/) — petstore, no auth required to generate
 - [examples/with-auth](examples/with-auth/) — bookstore with bearer auth + multi-server
+- [examples/demo](examples/demo/) — a real `report.html` generated against live petstore
 
 ## Development
 

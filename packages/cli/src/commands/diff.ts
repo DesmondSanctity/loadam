@@ -12,9 +12,10 @@ import type { Command } from "commander";
 import { createSession } from "../session/index.js";
 import { withFriendlyErrors } from "../util/errors.js";
 import { makeOutput } from "../util/output.js";
+import { resolveTarget } from "../util/target.js";
 
 interface DiffOptions {
-  target: string;
+  target?: string;
   output?: string;
   timeoutMs?: string;
   mutating?: boolean;
@@ -29,7 +30,7 @@ export function registerDiffCommand(program: Command): void {
     .command("diff")
     .description("Probe a live API and report drift against the spec (Markdown).")
     .argument("<spec>", "path to OpenAPI 3.x spec (YAML or JSON)")
-    .requiredOption("--target <url>", "base URL of the live API")
+    .option("--target <url>", "base URL of the live API (or set LOADAM_TARGET)")
     .option("-o, --output <path>", "write report to this file (otherwise stdout)")
     .option("--timeout-ms <n>", "per-request timeout", "5000")
     .option("--mutating", "also probe mutating ops (DANGEROUS — not for prod)", false)
@@ -42,6 +43,10 @@ export function registerDiffCommand(program: Command): void {
 
 export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
   const out = makeOutput(!!opts.json);
+  const target = resolveTarget(opts.target);
+  if (!target) {
+    throw new Error("--target is required (or set LOADAM_TARGET env var)");
+  }
   const specPath = resolve(spec);
   out.start(`Parsing OpenAPI spec: ${specPath}`);
   const specSource = await readFile(specPath, "utf8");
@@ -53,9 +58,9 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
   const pathParams = parseKvPairs(opts.pathParam ?? [], "=");
   const timeoutMs = Number.parseInt(opts.timeoutMs ?? "5000", 10);
 
-  out.start(`Probing ${ir.operations.length} operations on ${opts.target}…`);
+  out.start(`Probing ${ir.operations.length} operations on ${target}…`);
   const { probes, skipped } = await probeOperations(ir, {
-    baseUrl: opts.target,
+    baseUrl: target,
     headers,
     pathParams,
     timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 5000,
@@ -73,10 +78,10 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
     specSource,
     ir,
     irJson: JSON.stringify(ir, null, 2),
-    target: opts.target,
+    target: target,
     envVars: [],
     flags: {
-      target: opts.target,
+      target: target,
       timeoutMs,
       mutating: !!opts.mutating,
       failOn: opts.failOn ?? "error",
@@ -88,7 +93,7 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
 
   const report = renderMarkdownReport({
     ir,
-    baseUrl: opts.target,
+    baseUrl: target,
     findings,
     skipped,
   });
@@ -134,7 +139,7 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
 
   out.result({
     command: "diff",
-    target: opts.target,
+    target: target,
     probed: probes.length,
     skipped: skipped.length,
     findings: findings.length,

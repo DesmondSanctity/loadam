@@ -7,6 +7,7 @@ import type { Command } from "commander";
 import { createSession } from "../session/index.js";
 import { withFriendlyErrors } from "../util/errors.js";
 import { makeOutput } from "../util/output.js";
+import { resolveTarget } from "../util/target.js";
 
 interface ContractOptions {
   output: string;
@@ -42,8 +43,9 @@ export async function runContract(spec: string, opts: ContractOptions): Promise<
 
   const specSource = await readFile(specPath, "utf8");
   const examples = Number.parseInt(opts.examples ?? "25", 10);
+  const target = resolveTarget(opts.target);
   const result = compileContract(ir, specSource, {
-    baseUrl: opts.target,
+    baseUrl: target,
     examples: Number.isFinite(examples) ? examples : 25,
   });
 
@@ -67,10 +69,10 @@ export async function runContract(spec: string, opts: ContractOptions): Promise<
     specSource,
     ir,
     irJson: JSON.stringify(ir, null, 2),
-    target: opts.target ?? null,
+    target: target ?? null,
     envVars: result.envVars ?? [],
     flags: {
-      target: opts.target ?? null,
+      target: target ?? null,
       examples,
     },
     slug: `contract-${ir.meta.title ?? "run"}`,

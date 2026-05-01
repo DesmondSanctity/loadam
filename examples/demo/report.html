@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="generator" content="loadam 0.2.2" />
+<title>Swagger Petstore · test · 2026-05-01T12-11-17-smoke-swagger-petstore</title>
+<style>
+:root{
+  --bg:#fafafa;--fg:#111;--mut:#666;--brd:#e5e5e5;--card:#fff;
+  --ok:#15803d;--ok-bg:#dcfce7;--bad:#b91c1c;--bad-bg:#fee2e2;
+  --acc:#2563eb;--bar:#3b82f6;--code:#f4f4f5;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0a0a0a;--fg:#f5f5f5;--mut:#a1a1aa;--brd:#27272a;--card:#18181b;
+    --ok:#86efac;--ok-bg:#14532d;--bad:#fca5a5;--bad-bg:#7f1d1d;
+    --acc:#60a5fa;--bar:#3b82f6;--code:#27272a;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{max-width:960px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:24px 0 12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+h3{font-size:14px;margin:16px 0 8px;font-weight:600}
+code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:1px 6px;border-radius:3px}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+section{margin-top:8px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:16px;border-bottom:1px solid var(--brd)}
+.hdr-left .cmd{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:600}
+.hdr-left .sub{color:var(--mut);font-size:13px;margin-top:4px}
+.hdr-right{text-align:right}
+.hdr-right .when,.hdr-right .dur{font-size:12px;color:var(--mut);margin-top:4px;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.06em}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:20px}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:12px 14px}
+.card-v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.card-l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+.thr{list-style:none;padding:0;margin:0}
+.thr li{padding:4px 8px;border-radius:3px;margin:2px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.thr li.ok{color:var(--ok)}
+.thr li.bad{background:var(--bad-bg);color:var(--bad);font-weight:600}
+table.kv{border-collapse:collapse;width:100%;font-size:13px}
+table.kv th,table.kv td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--brd);vertical-align:top}
+table.kv th{font-weight:500;color:var(--mut);width:160px;white-space:nowrap}
+.metric-block{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:12px 16px;margin-bottom:12px}
+.bars{margin-top:10px}
+.bar-row{display:grid;grid-template-columns:60px 1fr 80px;gap:10px;align-items:center;font-size:12px;font-variant-numeric:tabular-nums;margin:3px 0}
+.bar-l{color:var(--mut)}
+.bar{background:var(--code);height:8px;border-radius:4px;overflow:hidden}
+.bar-fill{background:var(--bar);height:100%}
+.bar-v{text-align:right;color:var(--fg)}
+.drift{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:12px 16px;overflow-x:auto;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+.failures{list-style:none;padding:0;margin:0}
+.failures li{background:var(--bad-bg);border:1px solid var(--bad);border-radius:4px;padding:8px 12px;margin-bottom:6px}
+.failures .ftest{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600}
+.failures pre{margin:6px 0 0;font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--brd);color:var(--mut);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="cmd">test</div>
+    <h1>Swagger Petstore</h1>
+    <div class="sub">1.0.0 · target <code>https://petstore3.swagger.io/api/v3</code></div>
+  </div>
+  <div class="hdr-right">
+    <span class="badge bad">FAILED</span>
+    <div class="when">2026-05-01T12:11:17.592Z</div>
+    <div class="dur">2.96s</div>
+  </div>
+</header>
+
+
+<section>
+  <h2>Thresholds</h2>
+  <ul class="thr">
+    <li class="bad">✗ smoke: http_req_duration: p(95)&lt;2000</li>
+    <li class="bad">✗ smoke: checks: rate&gt;=0.95</li>
+    <li class="bad">✗ smoke: http_req_failed: rate&lt;0.05</li>
+    
+  </ul>
+</section>
+
+
+
+
+<section>
+  <h2>Run details</h2>
+  <table class="kv">
+    <tbody>
+      <tr><th>session id</th><td><code>2026-05-01T12-11-17-smoke-swagger-petstore</code></td></tr>
+      <tr><th>spec</th><td><code>/Users/anon/fusion/loadam/fixtures/specs/petstore.openapi.yaml</code></td></tr>
+      <tr><th>spec sha256</th><td><code>959e7237f7156c41…</code></td></tr>
+      <tr><th>IR digest</th><td><code>477bb6733e3fc361…</code></td></tr>
+      <tr><th>started</th><td>2026-05-01T12:11:17.592Z</td></tr>
+      <tr><th>ended</th><td>2026-05-01T12:11:20.550Z</td></tr>
+      <tr><th>exit code</th><td>99</td></tr>
+      <tr><th>env vars</th><td><code>X_API_KEY</code></td></tr>
+      <tr><th>mode</th><td>smoke</td></tr>
+      <tr><th>target</th><td>https://petstore3.swagger.io/api/v3</td></tr>
+      <tr><th>fixtureSize</th><td>10</td></tr>
+      <tr><th>seed</th><td>1</td></tr>
+      <tr><th>noInteractive</th><td>false</td></tr>
+      <tr><th>json</th><td>false</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  Generated by <a href="https://github.com/anonxhash/loadam">loadam 0.2.2</a> ·
+  schema v1 ·
+  IR <code>477bb6733e3f</code>
+</footer>
+<script type="application/json" id="loadam-data">{"meta":{"schemaVersion":1,"id":"2026-05-01T12-11-17-smoke-swagger-petstore","command":"test","flags":{"mode":"smoke","target":"https://petstore3.swagger.io/api/v3","fixtureSize":10,"seed":1,"noInteractive":false,"json":false},"spec":{"path":"/Users/anon/fusion/loadam/fixtures/specs/petstore.openapi.yaml","sha256":"959e7237f7156c4196d636f843f8ef644d0639ca4eec17e1b89ccd9b706266b7","title":"Swagger Petstore","version":"1.0.0"},"irDigest":"477bb6733e3fc361dd58e2814958c4f40d5c6141d1dd45d5ce288f7e80baac21","target":"https://petstore3.swagger.io/api/v3","envVars":["X_API_KEY"],"startedAt":"2026-05-01T12:11:17.592Z","artefacts":["ir.json","meta.json"],"endedAt":"2026-05-01T12:11:20.550Z","durationMs":2958,"exitCode":99,"thresholds":{"passed":[],"failed":["smoke: http_req_duration: p(95)<2000","smoke: checks: rate>=0.95","smoke: http_req_failed: rate<0.05"]},"summary":{}},"k6Summaries":null,"contractFailures":null,"loadamVersion":"0.2.2"}</script>
+</body>
+</html>

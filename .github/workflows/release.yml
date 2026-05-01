@@ -42,6 +42,21 @@ jobs:
    - name: Test
      run: pnpm -r test
 
+   - name: CLI smoke (built artefact runs end-to-end)
+     run: |
+      set -euo pipefail
+      node packages/cli/dist/bin.js --version
+      node packages/cli/dist/bin.js init fixtures/specs/petstore.openapi.yaml --json > /tmp/init.json
+      node -e 'const j=require("/tmp/init.json"); if(!j.operations||j.operations<1){console.error("init smoke failed");process.exit(1)}'
+      node packages/cli/dist/bin.js mcp fixtures/specs/petstore.openapi.yaml --json --output /tmp/mcp-smoke > /tmp/mcp.json
+      node -e 'const j=require("/tmp/mcp.json"); if(!Array.isArray(j.toolNames)||j.toolNames.length<1){console.error("mcp smoke failed");process.exit(1)}'
+
+   - name: Verify package contents (dry-run)
+     working-directory: packages/cli
+     run: |
+      npm pack --dry-run --json > /tmp/pack.json
+      node -e 'const a=require("/tmp/pack.json"); const f=a[0].files.map(x=>x.path); for (const need of ["dist/bin.js","dist/index.js","package.json","README.md","LICENSE"]) { if(!f.some(p=>p===need||p.endsWith("/"+need))){console.error("missing from tarball:",need);process.exit(1)} } console.log("tarball OK ("+a[0].files.length+" files, "+a[0].unpackedSize+" bytes)");'
+
    - name: Read local CLI version
      id: local
      run: echo "version=$(node -p "require('./packages/cli/package.json').version")"
@@ -66,6 +81,16 @@ jobs:
        echo "publish=true" >> "$GITHUB_OUTPUT"
        echo "Will publish ${{ steps.local.outputs.version }} (currently published: ${{ steps.published.outputs.version }})."
       fi
+
+   - name: Verify CHANGELOG has an entry for this version
+     if: steps.decide.outputs.publish == 'true'
+     run: |
+      v="${{ steps.local.outputs.version }}"
+      if ! grep -qE "^##? .*\[?$v\]?" CHANGELOG.md; then
+       echo "CHANGELOG.md is missing a section for v$v" >&2
+       exit 1
+      fi
+      echo "CHANGELOG entry for v$v found."
 
    - name: Publish to npm (Trusted Publishing via OIDC)
      if: steps.decide.outputs.publish == 'true'

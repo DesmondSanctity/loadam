@@ -16,6 +16,7 @@ import {
 } from "../util/interactive.js";
 import { digestK6Summary, findK6Binary, runK6 } from "../util/k6.js";
 import { makeOutput } from "../util/output.js";
+import { resolveTarget } from "../util/target.js";
 
 const VALID_MODES: RunMode[] = ["smoke", "load", "both", "skip"];
 
@@ -62,9 +63,10 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
 
   const fixtureSize = Number.parseInt(opts.fixtureSize ?? "10", 10);
   const seed = Number.parseInt(opts.seed ?? "1", 10);
+  const target = resolveTarget(opts.target);
 
   const result = compileK6(ir, {
-    baseUrl: opts.target,
+    baseUrl: target,
     fixtureSize: Number.isFinite(fixtureSize) ? fixtureSize : 10,
     seed: Number.isFinite(seed) ? seed : 1,
   });
@@ -129,11 +131,11 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
     specSource,
     ir,
     irJson: JSON.stringify(ir, null, 2),
-    target: opts.target ?? result.baseUrl,
+    target: target ?? result.baseUrl,
     envVars: result.auth.envVars,
     flags: {
       mode,
-      target: opts.target ?? null,
+      target: target ?? null,
       fixtureSize,
       seed,
       noInteractive: !!opts.noInteractive,

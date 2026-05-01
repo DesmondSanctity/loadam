@@ -6,6 +6,7 @@ import { compileMcp } from "@loadam/mcp";
 import type { Command } from "commander";
 import { withFriendlyErrors } from "../util/errors.js";
 import { makeOutput } from "../util/output.js";
+import { resolveTarget } from "../util/target.js";
 
 interface McpOptions {
   output: string;
@@ -40,8 +41,9 @@ export async function runMcp(spec: string, opts: McpOptions): Promise<void> {
   inferResourceGraph(ir);
   parseIR(ir);
 
+  const target = resolveTarget(opts.target);
   const result = compileMcp(ir, {
-    baseUrl: opts.target,
+    baseUrl: target,
     includeWrites: !!opts.writes,
     exclude: opts.exclude,
   });
