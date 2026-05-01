@@ -1,6 +1,6 @@
 {
   "name": "loadam",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Loadam CLI — generate test rigs and MCP servers from API specs",
   "keywords": [
     "openapi",
@@ -53,6 +53,7 @@
     "@loadam/core": "workspace:*",
     "@loadam/graph": "workspace:*",
     "@loadam/mcp": "workspace:*",
+    "@loadam/report": "workspace:*",
     "@loadam/test-contract": "workspace:*",
     "@loadam/test-drift": "workspace:*",
     "@loadam/test-k6": "workspace:*",

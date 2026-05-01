@@ -7,6 +7,7 @@ import { registerDiffCommand } from "./commands/diff.js";
 import { registerHistoryCommand } from "./commands/history.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerMcpCommand } from "./commands/mcp.js";
+import { registerReportCommand } from "./commands/report.js";
 import { registerShowCommand } from "./commands/show.js";
 import { registerTestCommand } from "./commands/test.js";
 import { registerUpdateCommand } from "./commands/update.js";
@@ -33,6 +34,7 @@ export function buildProgram(): Command {
   registerMcpCommand(program);
   registerHistoryCommand(program);
   registerShowCommand(program);
+  registerReportCommand(program);
   registerCleanCommand(program);
   registerCompletionCommand(program);
   registerUpdateCommand(program, VERSION);

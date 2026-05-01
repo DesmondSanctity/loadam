@@ -4,6 +4,22 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-01
+
+### Added
+
+- **HTML reports** — new `loadam report [id|prefix|latest] [--open] [-o path]` command. Renders a single-file, fully self-contained HTML report (~7 KB minimum, scales with run size) for any archived session. No external resources, no fetch calls, no fonts pulled at runtime — safe to attach as a CI artifact, drop in Slack, or scp around.
+- Sections rendered: header (title, target, command, duration, pass/fail badge), summary cards (p95, request count, error rate, threshold counts), thresholds, latency tables + percentile bars per k6 run (smoke / load), drift markdown verbatim (when session is from `loadam diff`), contract failures, run details (flags, env vars, spec sha256, IR digest), footer.
+- Auto dark/light mode via `prefers-color-scheme`; tabular-numeric layout for percentile readability.
+- Inlined JSON data payload (`<script type="application/json" id="loadam-data">`) so downstream tooling can extract structured data from the artifact.
+- `--open` flag opens the rendered report in the default browser via `open` (macOS), `xdg-open` (linux), or `start` (windows). Best-effort; silently no-ops if the platform opener isn't available.
+
+### Internal
+
+- New workspace package `@loadam/report` exposing `renderReport({meta, k6Summaries, driftMarkdown, contractFailures, loadamVersion})`. Pure function; no I/O. Bundled into the single `loadam` binary via tsup `noExternal`.
+- HTML escaping is applied to every user-controlled field (spec title, target URL, flag values, drift markdown, contract test names). The inlined JSON payload escapes `</script>` sequences so a malicious flag value can't break out of its tag.
+- 10 new tests covering: passing/failing status, k6 metric surfacing, drift inclusion, contract failures, XSS guards on HTML and JSON payloads, no-external-URLs invariant, missing-optional-fields handling.
+
 ## [0.2.1] - 2026-05-01
 
 ### Added
