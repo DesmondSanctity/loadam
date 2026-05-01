@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fromOpenApiFile, parseIR } from "@loadam/core";
 import { inferResourceGraph } from "@loadam/graph";
@@ -9,6 +9,7 @@ import {
   renderMarkdownReport,
 } from "@loadam/test-drift";
 import type { Command } from "commander";
+import { createSession } from "../session/index.js";
 import { withFriendlyErrors } from "../util/errors.js";
 import { makeOutput } from "../util/output.js";
 
@@ -43,6 +44,7 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
   const out = makeOutput(!!opts.json);
   const specPath = resolve(spec);
   out.start(`Parsing OpenAPI spec: ${specPath}`);
+  const specSource = await readFile(specPath, "utf8");
   const ir = await fromOpenApiFile(specPath);
   inferResourceGraph(ir);
   parseIR(ir);
@@ -63,13 +65,40 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
   const findings = compareProbes({ ir, probes });
   const counts = countBySeverity(findings);
 
+  // Archive the run.
+  const session = await createSession({
+    command: "diff",
+    outRoot: resolve("./loadam-out"),
+    specPath,
+    specSource,
+    ir,
+    irJson: JSON.stringify(ir, null, 2),
+    target: opts.target,
+    envVars: [],
+    flags: {
+      target: opts.target,
+      timeoutMs,
+      mutating: !!opts.mutating,
+      failOn: opts.failOn ?? "error",
+      headers: Object.keys(headers),
+      pathParams: Object.keys(pathParams),
+    },
+    slug: `diff-${ir.meta.title ?? "run"}`,
+  });
+
+  const report = renderMarkdownReport({
+    ir,
+    baseUrl: opts.target,
+    findings,
+    skipped,
+  });
+  await session.addArtefact("drift.md", report);
+  await session.addArtefact(
+    "findings.json",
+    JSON.stringify({ findings, skipped, counts }, null, 2),
+  );
+
   if (!out.json) {
-    const report = renderMarkdownReport({
-      ir,
-      baseUrl: opts.target,
-      findings,
-      skipped,
-    });
     if (opts.output) {
       const outFile = resolve(opts.output);
       await writeFile(outFile, report, "utf8");
@@ -80,14 +109,8 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
     out.info(
       `  ${probes.length} probed  ·  ${skipped.length} skipped  ·  ${counts.error} error  ·  ${counts.warning} warning  ·  ${counts.info} info`,
     );
+    out.info(`  Session: ${session.id}`);
   } else if (opts.output) {
-    // In JSON mode, still write the markdown if explicitly asked.
-    const report = renderMarkdownReport({
-      ir,
-      baseUrl: opts.target,
-      findings,
-      skipped,
-    });
     await writeFile(resolve(opts.output), report, "utf8");
   }
 
@@ -95,6 +118,19 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
   const failed =
     (failOn === "error" && counts.error > 0) ||
     (failOn === "warning" && counts.error + counts.warning > 0);
+
+  await session.finalize({
+    exitCode: failed ? 1 : 0,
+    thresholds: { passed: [], failed: [] },
+    summary: {
+      probed: probes.length,
+      skipped: skipped.length,
+      findings: findings.length,
+      error: counts.error,
+      warning: counts.warning,
+      info: counts.info,
+    },
+  });
 
   out.result({
     command: "diff",
@@ -106,6 +142,7 @@ export async function runDiff(spec: string, opts: DiffOptions): Promise<void> {
     reportPath: opts.output ? resolve(opts.output) : null,
     failOn,
     failed,
+    sessionId: session.id,
   });
 
   if (failOn !== "never" && failed) process.exit(1);

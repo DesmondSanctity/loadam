@@ -4,6 +4,23 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-01
+
+### Added
+
+- **Session archive** — every `loadam test`, `contract`, and `diff` run now writes a timestamped session directory under `loadam-out/sessions/<id>/` containing `meta.json`, `ir.json`, the relevant artefacts (k6 summaries, `drift.md`, `findings.json`), and pass/fail thresholds. Session dirs are append-only and content-addressed (spec sha256 + IR digest).
+- New `loadam history [--limit N] [--command test|contract|diff] [--json]` — list past sessions newest-first.
+- New `loadam show <id|prefix|latest> [--json]` — inspect a session: command, target, spec digest, thresholds, summary metrics, artefacts on disk. For `diff` sessions, prints the archived `drift.md` inline.
+- New `loadam clean [--keep N] [--older-than 30d] [--yes]` — delete old sessions. Defaults to dry-run; pass `--yes` to apply. Supports duration suffixes `s`/`m`/`h`/`d`.
+- Auto-generated `loadam-out/sessions/.gitignore` so users don't accidentally commit session archives (which can include redacted-but-not-cryptographically-scrubbed flag dumps).
+- `k6` runs now write `--summary-export=` JSON files into the session dir; `loadam show` surfaces p95 / req count from these summaries.
+- All command JSON outputs now include a `sessionId` field for downstream tooling.
+
+### Internal
+
+- New `packages/cli/src/session/` module: `createSession()`, `listSessions()`, `resolveSessionId()` (supports git-style unambiguous prefix matching + `latest` alias), `cleanSessions()`. Schema versioned (`schemaVersion: 1`). Flags written to `meta.json` are sanitized — values matching `/(token|secret|password|pass|key|credential|auth)/i` are replaced with `[redacted]` regardless of provenance.
+- 11 new tests covering session create/finalize roundtrip, listing newest-first, prefix resolution + ambiguity errors, dry-run vs apply clean, age-based clean, and secret-flag redaction.
+
 ## [0.2.0] - 2026-05-01
 
 ### Added

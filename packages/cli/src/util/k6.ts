@@ -32,6 +32,8 @@ export interface RunK6Options {
   env?: Record<string, string>;
   /** Extra k6 CLI flags appended after the script path. */
   args?: string[];
+  /** Absolute path k6 should write a JSON summary to (--summary-export). */
+  summaryPath?: string;
 }
 
 /**
@@ -45,8 +47,11 @@ export async function runK6(opts: RunK6Options): Promise<number> {
       "k6 not found on PATH. Install it from https://grafana.com/docs/k6/latest/set-up/install-k6/ and try again.",
     );
   }
+  const args = ["run"];
+  if (opts.summaryPath) args.push(`--summary-export=${opts.summaryPath}`);
+  args.push(...(opts.args ?? []), opts.script);
   return await new Promise<number>((resolveExit, reject) => {
-    const child = spawn(bin, ["run", ...(opts.args ?? []), opts.script], {
+    const child = spawn(bin, args, {
       cwd: opts.cwd,
       env: { ...process.env, ...opts.env },
       stdio: "inherit",
@@ -54,4 +59,49 @@ export async function runK6(opts: RunK6Options): Promise<number> {
     child.on("error", reject);
     child.on("close", (code) => resolveExit(code ?? 0));
   });
+}
+
+/**
+ * Pull headline numbers + threshold pass/fail from a k6 --summary-export JSON.
+ * Returns null if the file is unreadable or the shape isn't recognised.
+ */
+export interface K6SummaryDigest {
+  passed: string[];
+  failed: string[];
+  metrics: Record<string, number>;
+}
+
+export async function digestK6Summary(path: string): Promise<K6SummaryDigest | null> {
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const text = await readFile(path, "utf8");
+    const data = JSON.parse(text) as {
+      metrics?: Record<
+        string,
+        {
+          thresholds?: Record<string, { ok?: boolean }>;
+          values?: Record<string, number>;
+        }
+      >;
+    };
+    const passed: string[] = [];
+    const failed: string[] = [];
+    const metrics: Record<string, number> = {};
+    for (const [name, m] of Object.entries(data.metrics ?? {})) {
+      if (m.thresholds) {
+        for (const [expr, info] of Object.entries(m.thresholds)) {
+          (info.ok ? passed : failed).push(`${name}: ${expr}`);
+        }
+      }
+      if (m.values) {
+        if (typeof m.values["p(95)"] === "number") metrics[`${name}.p95`] = m.values["p(95)"];
+        if (typeof m.values.rate === "number") metrics[`${name}.rate`] = m.values.rate;
+        if (typeof m.values.count === "number") metrics[`${name}.count`] = m.values.count;
+        if (typeof m.values.avg === "number") metrics[`${name}.avg`] = m.values.avg;
+      }
+    }
+    return { passed, failed, metrics };
+  } catch {
+    return null;
+  }
 }

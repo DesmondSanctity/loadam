@@ -1,9 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { fromOpenApiFile, parseIR } from "@loadam/core";
 import { inferResourceGraph } from "@loadam/graph";
 import { compileK6 } from "@loadam/test-k6";
 import type { Command } from "commander";
+import { type ActiveSession, createSession } from "../session/index.js";
 import { withFriendlyErrors } from "../util/errors.js";
 import {
   type RunMode,
@@ -13,7 +14,7 @@ import {
   promptForMode,
   writeEnvFile,
 } from "../util/interactive.js";
-import { findK6Binary, runK6 } from "../util/k6.js";
+import { digestK6Summary, findK6Binary, runK6 } from "../util/k6.js";
 import { makeOutput } from "../util/output.js";
 
 const VALID_MODES: RunMode[] = ["smoke", "load", "both", "skip"];
@@ -54,6 +55,7 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
   const specPath = resolve(spec);
   out.start(`Parsing OpenAPI spec: ${specPath}`);
 
+  const specSource = await readFile(specPath, "utf8");
   const ir = await fromOpenApiFile(specPath);
   inferResourceGraph(ir);
   parseIR(ir);
@@ -89,8 +91,9 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
   let envAction: "wrote" | "skipped" | "not-needed" = "not-needed";
   let runResult: { mode: RunMode; smokeExit?: number; loadExit?: number } | null = null;
 
+  // Resolve mode + env first so the session can record both before any run.
+  let mode: RunMode;
   if (interactive) {
-    // Prompt for any missing auth env vars, then write a real .env.
     if (result.auth.envVars.length > 0) {
       out.step("");
       out.info(
@@ -109,27 +112,58 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
         out.info(`  Preserved existing keys: ${written.preserved.join(", ")}`);
       }
     } else {
-      // Still write BASE_URL so the user has a starting .env.
       const written = await writeEnvFile(outDir, result.baseUrl, {});
       out.success(`Wrote ${written.path}`);
       envAction = "wrote";
     }
-
-    // Pick run mode.
-    const mode = requestedMode ?? (await promptForMode());
-    runResult = await maybeRun(mode, outDir, out);
+    mode = requestedMode ?? (await promptForMode());
   } else {
-    // Non-interactive: respect --mode if passed, otherwise just generate (skip).
-    const mode = requestedMode ?? "skip";
-    if (mode !== "skip") {
-      runResult = await maybeRun(mode, outDir, out);
-    } else if (!out.json) {
-      out.step("");
-      out.step("Next steps:");
-      out.step(`  cd ${opts.output}`);
-      out.step("  cp .env.example .env  # fill in credentials");
-      out.step("  k6 run smoke.js");
-    }
+    mode = requestedMode ?? "skip";
+  }
+
+  // Always archive the run, including skip — generation alone is a recordable event.
+  const session: ActiveSession = await createSession({
+    command: "test",
+    outRoot: getSessionRoot(outDir),
+    specPath,
+    specSource,
+    ir,
+    irJson: JSON.stringify(ir, null, 2),
+    target: opts.target ?? result.baseUrl,
+    envVars: result.auth.envVars,
+    flags: {
+      mode,
+      target: opts.target ?? null,
+      fixtureSize,
+      seed,
+      noInteractive: !!opts.noInteractive,
+      json: !!opts.json,
+    },
+    slug: `${mode}-${ir.meta.title ?? "run"}`,
+  });
+  if (!out.json) out.info(`  Session: ${session.id}`);
+
+  if (mode !== "skip") {
+    runResult = await maybeRunWithSession({ mode, cwd: outDir, out, session });
+  } else if (!interactive && !out.json) {
+    out.step("");
+    out.step("Next steps:");
+    out.step(`  cd ${opts.output}`);
+    out.step("  cp .env.example .env  # fill in credentials");
+    out.step("  k6 run smoke.js");
+  }
+
+  // Finalize when we didn't run (maybeRunWithSession finalizes itself).
+  if (mode === "skip") {
+    await session.finalize({
+      exitCode: 0,
+      thresholds: { passed: [], failed: [] },
+      summary: {
+        operations: ir.operations.length,
+        fixtureOps: fixtureCount,
+        files: fileCount,
+      },
+    });
   }
 
   out.result({
@@ -143,6 +177,7 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
     envAction,
     interactive,
     run: runResult,
+    sessionId: session.id,
   });
 
   if (runResult) {
@@ -163,41 +198,102 @@ function parseModeFlag(raw: string | undefined): RunMode | null {
   return raw as RunMode;
 }
 
-async function maybeRun(
-  mode: RunMode,
-  cwd: string,
-  out: ReturnType<typeof makeOutput>,
+/**
+ * Resolve the directory used as the session-archive root. Sessions live next
+ * to the rig output (./loadam-out/sessions/), regardless of where the rig was
+ * written, so different rigs from the same workspace share a history.
+ */
+function getSessionRoot(outDir: string): string {
+  // outDir typically ends with /loadam-out/k6 — climb to ./loadam-out
+  return resolve(outDir, "..");
+}
+
+interface MaybeRunInput {
+  mode: RunMode;
+  cwd: string;
+  out: ReturnType<typeof makeOutput>;
+  session: ActiveSession;
+}
+
+async function maybeRunWithSession(
+  input: MaybeRunInput,
 ): Promise<{ mode: RunMode; smokeExit?: number; loadExit?: number } | null> {
+  const { mode, cwd, out, session } = input;
   if (mode === "skip") return { mode };
 
-  // Verify k6 is on PATH before we promise the user a run.
   const bin = await findK6Binary();
   if (!bin) {
     out.info("");
     out.info("k6 binary not found on PATH. Skipping run.");
     out.info("Install: https://grafana.com/docs/k6/latest/set-up/install-k6/");
+    await session.finalize({
+      exitCode: 0,
+      thresholds: { passed: [], failed: [] },
+      summary: { skipped: "k6 not installed" },
+    });
     return { mode: "skip" };
   }
 
   const result: { mode: RunMode; smokeExit?: number; loadExit?: number } = { mode };
+  const allPassed: string[] = [];
+  const allFailed: string[] = [];
+  const summary: Record<string, number | string> = {};
 
   if (mode === "smoke" || mode === "both") {
     if (!out.json) {
       out.step("");
       out.step("Running k6 smoke test...");
     }
-    result.smokeExit = await runK6({ cwd, script: "smoke.js" });
+    const summaryPath = join(session.dir, "k6-smoke-summary.json");
+    result.smokeExit = await runK6({ cwd, script: "smoke.js", summaryPath });
+    const digest = await digestK6Summary(summaryPath);
+    if (digest) {
+      allPassed.push(...digest.passed.map((t) => `smoke: ${t}`));
+      allFailed.push(...digest.failed.map((t) => `smoke: ${t}`));
+      if (typeof digest.metrics["http_req_duration.p95"] === "number") {
+        summary.smokeP95 = Math.round(digest.metrics["http_req_duration.p95"]);
+      }
+      if (typeof digest.metrics["http_reqs.count"] === "number") {
+        summary.smokeReqs = digest.metrics["http_reqs.count"];
+      }
+    }
   }
   if (mode === "load" || mode === "both") {
     if (mode === "both") {
       const cont = await confirmContinue("Smoke complete. Continue with load test?");
-      if (!cont) return result;
+      if (!cont) {
+        await session.finalize({
+          exitCode: result.smokeExit ?? 0,
+          thresholds: { passed: allPassed, failed: allFailed },
+          summary,
+        });
+        return result;
+      }
     }
     if (!out.json) {
       out.step("");
       out.step("Running k6 load test...");
     }
-    result.loadExit = await runK6({ cwd, script: "load.js" });
+    const summaryPath = join(session.dir, "k6-load-summary.json");
+    result.loadExit = await runK6({ cwd, script: "load.js", summaryPath });
+    const digest = await digestK6Summary(summaryPath);
+    if (digest) {
+      allPassed.push(...digest.passed.map((t) => `load: ${t}`));
+      allFailed.push(...digest.failed.map((t) => `load: ${t}`));
+      if (typeof digest.metrics["http_req_duration.p95"] === "number") {
+        summary.loadP95 = Math.round(digest.metrics["http_req_duration.p95"]);
+      }
+      if (typeof digest.metrics["http_reqs.count"] === "number") {
+        summary.loadReqs = digest.metrics["http_reqs.count"];
+      }
+    }
   }
+
+  const finalExit = result.loadExit ?? result.smokeExit ?? 0;
+  await session.finalize({
+    exitCode: finalExit,
+    thresholds: { passed: allPassed, failed: allFailed },
+    summary,
+  });
   return result;
 }

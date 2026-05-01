@@ -1,6 +1,6 @@
 {
   "name": "loadam",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Loadam CLI — generate test rigs and MCP servers from API specs",
   "keywords": [
     "openapi",

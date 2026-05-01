@@ -1,10 +1,13 @@
 import { Command } from "commander";
 import { registerAuthCommands } from "./commands/auth.js";
+import { registerCleanCommand } from "./commands/clean.js";
 import { registerCompletionCommand } from "./commands/completion.js";
 import { registerContractCommand } from "./commands/contract.js";
 import { registerDiffCommand } from "./commands/diff.js";
+import { registerHistoryCommand } from "./commands/history.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerMcpCommand } from "./commands/mcp.js";
+import { registerShowCommand } from "./commands/show.js";
 import { registerTestCommand } from "./commands/test.js";
 import { registerUpdateCommand } from "./commands/update.js";
 import { banner } from "./util/banner.js";
@@ -28,6 +31,9 @@ export function buildProgram(): Command {
   registerContractCommand(program);
   registerDiffCommand(program);
   registerMcpCommand(program);
+  registerHistoryCommand(program);
+  registerShowCommand(program);
+  registerCleanCommand(program);
   registerCompletionCommand(program);
   registerUpdateCommand(program, VERSION);
 

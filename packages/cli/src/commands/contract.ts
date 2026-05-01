@@ -4,6 +4,7 @@ import { fromOpenApiFile, parseIR } from "@loadam/core";
 import { inferResourceGraph } from "@loadam/graph";
 import { compileContract } from "@loadam/test-contract";
 import type { Command } from "commander";
+import { createSession } from "../session/index.js";
 import { withFriendlyErrors } from "../util/errors.js";
 import { makeOutput } from "../util/output.js";
 
@@ -57,7 +58,34 @@ export async function runContract(spec: string, opts: ContractOptions): Promise<
   const fileCount = Object.keys(result.files).length;
   out.success(`Wrote ${fileCount} files to ${outDir}`);
   out.info(`  ${ir.operations.length} operations to fuzz`);
+
+  // Archive the run (no execution; just record what was generated).
+  const session = await createSession({
+    command: "contract",
+    outRoot: resolve(outDir, ".."),
+    specPath,
+    specSource,
+    ir,
+    irJson: JSON.stringify(ir, null, 2),
+    target: opts.target ?? null,
+    envVars: result.envVars ?? [],
+    flags: {
+      target: opts.target ?? null,
+      examples,
+    },
+    slug: `contract-${ir.meta.title ?? "run"}`,
+  });
+  await session.finalize({
+    exitCode: 0,
+    thresholds: { passed: [], failed: [] },
+    summary: {
+      files: fileCount,
+      operations: ir.operations.length,
+    },
+  });
+
   if (!out.json) {
+    out.info(`  Session: ${session.id}`);
     out.step("");
     out.step("Next steps:");
     out.step(`  cd ${opts.output}`);
@@ -72,5 +100,6 @@ export async function runContract(spec: string, opts: ContractOptions): Promise<
     files: fileCount,
     operations: ir.operations.length,
     envVars: result.envVars,
+    sessionId: session.id,
   });
 }
