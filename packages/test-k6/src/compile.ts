@@ -1,5 +1,5 @@
 import type { IR } from "@loadam/core";
-import { emitAuth } from "./auth.js";
+import { type AuthEmission, emitAuth } from "./auth.js";
 import { type FixturePool, buildFixturePool } from "./fixtures.js";
 import { defaultBaseUrl, sequenceForSmoke } from "./sequence.js";
 import {
@@ -27,6 +27,10 @@ export interface CompileK6Result {
   files: Record<string, string>;
   /** The fixture pool (also serialised into files['fixtures.json']). */
   fixtures: FixturePool;
+  /** Auth emission — names of env vars required at runtime + free-text notes. */
+  auth: AuthEmission;
+  /** Effective base URL written into the rig (for the CLI to surface). */
+  baseUrl: string;
 }
 
 /**
@@ -55,5 +59,5 @@ export function compileK6(ir: IR, opts: CompileK6Options = {}): CompileK6Result 
     "README.md": emitReadme(ctx),
   };
 
-  return { files, fixtures };
+  return { files, fixtures, auth, baseUrl };
 }

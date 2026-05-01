@@ -4,6 +4,22 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-01
+
+### Added
+
+- **Interactive auth & run** — `loadam test` now detects required env vars from the spec's security schemes and prompts the user with masked password input, writes a real `.env` (mode 0600) instead of just `.env.example`, then offers to run smoke / load / both immediately.
+- New `--mode <smoke|load|both|skip>` flag — selects what to run after generating the rig. Aliased shorthands considered for later (`--smoke` / `--load`).
+- New `--no-interactive` flag — disables all prompts; CI mode also auto-detected via `CI` env var and non-TTY stdin.
+- New `loadam test` JSON report fields: `envVars`, `envAction` (`wrote` / `skipped` / `not-needed`), `interactive`, `run` (with `mode`, `smokeExit`, `loadExit`).
+- `k6` binary detection on PATH — friendly error with install link if missing instead of cryptic spawn failure.
+
+### Changed
+
+- `compileK6()` result now exposes `auth` and `baseUrl` so consumers can inspect required env vars without re-walking the IR.
+- `.env` file written on interactive runs preserves existing keys by default; reports which keys were written vs preserved.
+- Honours env vars already set in the parent shell — no prompt for vars that are already in scope.
+
 ## [0.1.2] - 2026-05-01
 
 ### Fixed
