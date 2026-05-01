@@ -50,7 +50,7 @@ jobs:
    - name: Read published CLI version
      id: published
      run: |
-      v=$(npm view @loadam/cli version 2>/dev/null || echo "0.0.0")
+      v=$(npm view loadam version 2>/dev/null || echo "0.0.0")
       echo "version=$v" >> "$GITHUB_OUTPUT"
 
    - name: Decide whether to publish

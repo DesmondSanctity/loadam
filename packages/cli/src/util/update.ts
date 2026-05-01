@@ -1,7 +1,7 @@
 // Lightweight self-update check. Hits the npm registry once, no auth, no telemetry.
 // Returns the latest version string or null on any failure (network, parse, etc.).
 
-const PKG = "@loadam/cli";
+const PKG = "loadam";
 const REGISTRY = "https://registry.npmjs.org";
 
 export async function fetchLatestVersion(timeoutMs = 3000): Promise<string | null> {

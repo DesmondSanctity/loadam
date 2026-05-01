@@ -4,7 +4,7 @@ import { compareVersions, fetchLatestVersion } from "../util/update.js";
 export function registerUpdateCommand(program: Command, currentVersion: string): void {
   program
     .command("update")
-    .description("Check whether a newer version of @loadam/cli is on npm")
+    .description("Check whether a newer version of loadam is on npm")
     .option("--json", "emit machine-readable output")
     .action(async (opts: { json?: boolean }) => {
       const latest = await fetchLatestVersion();
@@ -30,7 +30,7 @@ export function registerUpdateCommand(program: Command, currentVersion: string):
         process.stdout.write(`loadam ${currentVersion} is up to date (latest: ${latest}).\n`);
       } else {
         process.stdout.write(
-          `A new version of loadam is available: ${currentVersion} → ${latest}\nRun: npm i -g @loadam/cli\n`,
+          `A new version of loadam is available: ${currentVersion} → ${latest}\nRun: npm i -g loadam\n`,
         );
       }
     });

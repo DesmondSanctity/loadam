@@ -4,6 +4,17 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-01
+
+### Changed
+
+- Package metadata: added `keywords`, `homepage`, `repository`, `bugs`, `license` fields so the npm page shows GitHub link, issue tracker, and Apache-2.0 badge.
+- README demo image switched to absolute `raw.githubusercontent.com` URL so it renders on the npm page (not just on GitHub).
+
+### Released via
+
+- First release published through the automated GitHub Actions workflow with npm Trusted Publishing (OIDC) — verifies the end-to-end release pipeline.
+
 ## [0.1.0] - 2026-05-01
 
 ### Added
@@ -16,18 +27,18 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 - **`@loadam/test-contract`** — IR → Schemathesis pytest project (pyproject + conftest + property-based tests + embedded spec).
 - **`@loadam/test-drift`** — live API probe + Markdown diff report; severity-aware (`error` / `warning` / `info`); shared `countBySeverity` helper.
 - **`@loadam/mcp`** — IR → runnable MCP server emitter (8-file ESM JS project): `bin.js` (stdio + Streamable HTTP), `server.js` (low-level `Server` API w/ `ListTools` + `CallTool`), `tools.js`, `client.js`, `auth.js`. Pinned to `@modelcontextprotocol/sdk@^1.29.0`. Read-only by default; `--writes` opts in mutating ops.
-- **`@loadam/cli`** — commands: `init`, `test`, `contract`, `mcp`, `diff`, `auth import`, `completion`, `update`. Every command supports `--json` for CI use. Friendly errors for `ZodError`, `ENOENT`, parse errors. ASCII banner on `--help` and bare invocation.
+- **`loadam`** — commands: `init`, `test`, `contract`, `mcp`, `diff`, `auth import`, `completion`, `update`. Every command supports `--json` for CI use. Friendly errors for `ZodError`, `ENOENT`, parse errors. ASCII banner on `--help` and bare invocation.
 
 ### Tooling & Distribution
 
 - GitHub Actions CI matrix (Ubuntu/macOS × Node 20/22): lint + build + test.
-- Single-package distribution: `tsup` bundles all `@loadam/*` workspace deps into `packages/cli` so `npm i -g @loadam/cli` (or `npx`) installs without exposing internal scopes.
+- Single-package distribution: `tsup` bundles all `@loadam/*` workspace deps into `packages/cli` so `npm i -g loadam` (or `npx`) installs without exposing internal scopes.
 - Husky pre-commit (lint-staged) + pre-push (full lint + build + test) hooks.
 - `loadam update` self-check against the npm registry (3s timeout, no telemetry).
 - Bash / zsh / fish shell completions via `loadam completion <shell>`.
 - No-telemetry stance documented in [SECURITY.md](SECURITY.md) and README.
 - Animated demo at [.github/assets/demo.svg](.github/assets/demo.svg), regenerable with `pnpm demo` (deterministic asciicast synthesized from real CLI output).
-- Automated release workflow ([.github/workflows/release.yml](.github/workflows/release.yml)): on push to `main`, compares `@loadam/cli` version to npm and — if changed — publishes with provenance, tags `vX.Y.Z`, and creates a GitHub Release.
+- Automated release workflow ([.github/workflows/release.yml](.github/workflows/release.yml)): on push to `main`, compares `loadam` version to npm and — if changed — publishes with provenance, tags `vX.Y.Z`, and creates a GitHub Release.
 
 ### Verified
 

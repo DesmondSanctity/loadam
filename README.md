@@ -3,11 +3,11 @@
 > Point loadam at an OpenAPI spec. Get back a working **k6 load test**, a **Schemathesis contract suite**, and an **MCP server** for agents — in one command. OSS, Apache 2.0.
 
 <p align="center">
- <img src=".github/assets/demo.svg" alt="loadam in 30 seconds" width="720">
+ <img src="https://raw.githubusercontent.com/DesmondSanctity/loadam/main/.github/assets/demo.svg" alt="loadam in 30 seconds" width="720">
 </p>
 
 ```bash
-npm i -g @loadam/cli          # or: npx @loadam/cli ...
+npm i -g loadam          # or: npx loadam ...
 loadam mcp ./openapi.yaml
 # 8 files written → cd loadam-out/mcp && npm install && node bin.js
 ```
@@ -25,13 +25,13 @@ Both are compiled from the same **Intermediate Representation (IR)** built from 
 
 ```bash
 # Global install — gives you the `loadam` binary on $PATH:
-npm i -g @loadam/cli
+npm i -g loadam
 
 # Or run on demand without installing:
-npx @loadam/cli <command>
+npx loadam <command>
 
 # Or pin per-project:
-npm i -D @loadam/cli && npx loadam <command>
+npm i -D loadam && npx loadam <command>
 ```
 
 Once installed globally, all examples below work as `loadam <command>` (no `npx` prefix).
@@ -76,7 +76,7 @@ loadam mcp ./openapi.yaml --json | jq .toolNames
 | `loadam mcp <spec>`      | Compile to a runnable MCP server (stdio + HTTP)             | `loadam-out/mcp/`      |
 | `loadam diff <spec>`     | Probe a live API and report spec-vs-reality drift           | Markdown               |
 | `loadam auth import`     | Infer an auth profile from a `curl` command                 | JSON / pretty          |
-| `loadam update`          | Check npm for a newer version of `@loadam/cli`              | text or `--json`       |
+| `loadam update`          | Check npm for a newer version of `loadam`                   | text or `--json`       |
 | `loadam completion`      | Print bash/zsh/fish completion script                       | stdout                 |
 
 ## What you get from `loadam mcp`

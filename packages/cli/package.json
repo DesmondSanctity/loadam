@@ -1,7 +1,27 @@
 {
- "name": "@loadam/cli",
- "version": "0.1.0",
+ "name": "loadam",
+ "version": "0.1.1",
  "description": "Loadam CLI — generate test rigs and MCP servers from API specs",
+ "keywords": [
+  "openapi",
+  "k6",
+  "load-testing",
+  "contract-testing",
+  "schemathesis",
+  "mcp",
+  "model-context-protocol",
+  "cli"
+ ],
+ "homepage": "https://github.com/DesmondSanctity/loadam#readme",
+ "repository": {
+  "type": "git",
+  "url": "git+https://github.com/DesmondSanctity/loadam.git",
+  "directory": "packages/cli"
+ },
+ "bugs": {
+  "url": "https://github.com/DesmondSanctity/loadam/issues"
+ },
+ "license": "Apache-2.0",
  "type": "module",
  "bin": {
   "loadam": "./dist/bin.js"

@@ -8,7 +8,7 @@ export default defineConfig({
   clean: true,
   target: "node20",
   splitting: false,
-  // Bundle workspace packages so a single `npm i -g @loadam/cli` works
+  // Bundle workspace packages so a single `npm i -g loadam` works
   // without needing every @loadam/* sub-package on the registry.
   noExternal: [/^@loadam\//],
   banner: { js: "#!/usr/bin/env node" },

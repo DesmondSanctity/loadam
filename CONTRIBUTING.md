@@ -65,9 +65,9 @@ Releases are automated. To cut one:
 2. Move items from `[Unreleased]` to a new versioned section in [CHANGELOG.md](CHANGELOG.md).
 3. Merge to `main`.
 
-The [Release workflow](.github/workflows/release.yml) compares the local `@loadam/cli` version against npm. If different, it runs lint + build + test, publishes with provenance, tags `vX.Y.Z`, and creates a GitHub Release.
+The [Release workflow](.github/workflows/release.yml) compares the local `loadam` version against npm. If different, it runs lint + build + test, publishes with provenance, tags `vX.Y.Z`, and creates a GitHub Release.
 
-Authentication uses **npm Trusted Publishing** (OIDC) — no `NPM_TOKEN` secret is stored. To set up: on npmjs.com → `@loadam/cli` → Settings → Trusted Publisher, register this repo with workflow filename `release.yml`. Requires npm CLI ≥ 11.5.1 (the workflow installs it).
+Authentication uses **npm Trusted Publishing** (OIDC) — no `NPM_TOKEN` secret is stored. To set up: on npmjs.com → `loadam` → Settings → Trusted Publisher, register this repo with workflow filename `release.yml`. Requires npm CLI ≥ 11.5.1 (the workflow installs it).
 
 ## Security
 
