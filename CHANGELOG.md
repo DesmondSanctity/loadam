@@ -4,6 +4,35 @@ All notable changes are documented here. The format is loosely based on [Keep a 
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-02
+
+### Added
+
+- **HTML report — brand row** with a gauge-needle SVG mark and `loadam` wordmark linking to the GitHub repo. Amber→red gradient (`#f59e0b→#ef4444`) used consistently for the mark, the wordmark accent, and the CLI ASCII banner.
+- **Per-endpoint sidebar** in the HTML report — every operation in the spec gets its own status pill with `data-state` (`ok`/`warn`/`bad`/`muted`), live p95 from k6, and HTTP status-code distribution segmented as 1xx/2xx/3xx/4xx/5xx bars.
+- **Filter chips** — All / Failed / Flaky / Passed radios above the sidebar. Pure CSS (`:checked ~ sibling`), zero JS.
+- **Three-tier overall status** in the header chip: `passed` (≥ 99% pass rate) · `flaky` / `partial` (≥ 95%) · `failed` (< 95%). Replaces the previous binary pass/fail framing. Failure panel heading switches from "Why this failed" (red) to "Issues to investigate" (amber) for the warn tier.
+- **Per-op latency Trend & status Counter** emitted by generated k6 scripts (`loadam_op_latency`, `loadam_op_status`) tagged with `name` and `bucket`. Sentinel thresholds force k6 to surface the sub-metrics in `--summary-export` so the report can render per-op p95 and status distribution without re-parsing logs.
+- **Collapsible threshold lists** — the failure panel and sidebar now show the first few entries inline with a `+N more` `<details>` toggle. Keeps the page readable when many thresholds fail.
+- **`Generating k6 scripts for N operations…` status line** — fills the previously silent gap between spec parse and k6 launch on large specs.
+
+### Fixed
+
+- **Threshold-noise leak** — generated sentinel sub-metrics (`loadam_op_latency`, `loadam_op_status`) were being counted as failed thresholds in `meta.json`, surfacing as e.g. "330 thresholds failed" on a healthy run. `digestK6Summary()` now skips them at the source; the renderer also defensively filters them.
+- **Filter-chip radio dots leaking into the layout** when the radios were direct children of `.ep-layout`. CSS selector hardened to `.ep-layout > .ep-filter-radio`.
+- **Sidebar height** bumped from 520px to 820px so larger specs (~27 ops) don't get prematurely scroll-trapped.
+
+### Changed
+
+- **GitHub repo URL** corrected to `https://github.com/DesmondSanctity/loadam` (footer + brand link).
+- **CLI banner** color switched from cyan to amber (`38;5;208`) to match the brand mark.
+
+### Internal
+
+- `packages/report` exports `OverallStatus` + `computeOverall()`; `OpMetrics`/`OpRunMetric` interfaces; `collectOpMetrics()` parses tagged k6 sub-metrics; `isSentinelThreshold()` strips `<run>:` prefixes before matching.
+- `packages/test-k6` `emitSmokeJs(ctx)` / `emitLoadJs(ctx)` now take the compiler ctx and embed `emitOpThresholds(ctx)` output.
+- 14 report tests + 8 test-k6 + 34 cli passing.
+
 ## [0.2.3] - 2026-05-15
 
 ### Added

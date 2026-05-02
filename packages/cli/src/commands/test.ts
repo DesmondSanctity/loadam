@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fromOpenApiFile, parseIR } from "@loadam/core";
 import { inferResourceGraph } from "@loadam/graph";
@@ -27,7 +27,8 @@ interface TestOptions {
   seed?: string;
   json?: boolean;
   mode?: string;
-  noInteractive?: boolean;
+  /** Commander binds `--no-interactive` to `opts.interactive = false` (default true). */
+  interactive?: boolean;
 }
 
 export function registerTestCommand(program: Command): void {
@@ -60,11 +61,15 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
   const ir = await fromOpenApiFile(specPath);
   inferResourceGraph(ir);
   parseIR(ir);
+  out.success(`Parsed ${ir.operations.length} operation${ir.operations.length === 1 ? "" : "s"}`);
 
   const fixtureSize = Number.parseInt(opts.fixtureSize ?? "10", 10);
   const seed = Number.parseInt(opts.seed ?? "1", 10);
   const target = resolveTarget(opts.target);
 
+  out.start(
+    `Generating k6 scripts for ${ir.operations.length} operation${ir.operations.length === 1 ? "" : "s"}…`,
+  );
   const result = compileK6(ir, {
     baseUrl: target,
     fixtureSize: Number.isFinite(fixtureSize) ? fixtureSize : 10,
@@ -87,7 +92,10 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
   );
 
   // Decide interactive vs scripted.
-  const interactive = !opts.json && isInteractive(!!opts.noInteractive);
+  // Commander sets `opts.interactive` to `false` when `--no-interactive` is
+  // passed, and leaves it `undefined` otherwise (so default = enabled).
+  const noInteractiveFlag = opts.interactive === false;
+  const interactive = !opts.json && isInteractive(noInteractiveFlag);
   const requestedMode = parseModeFlag(opts.mode);
 
   let envAction: "wrote" | "skipped" | "not-needed" = "not-needed";
@@ -138,7 +146,7 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
       target: target ?? null,
       fixtureSize,
       seed,
-      noInteractive: !!opts.noInteractive,
+      noInteractive: noInteractiveFlag,
       json: !!opts.json,
     },
     slug: `${mode}-${ir.meta.title ?? "run"}`,
@@ -146,7 +154,7 @@ export async function runTest(spec: string, opts: TestOptions): Promise<void> {
   if (!out.json) out.info(`  Session: ${session.id}`);
 
   if (mode !== "skip") {
-    runResult = await maybeRunWithSession({ mode, cwd: outDir, out, session });
+    runResult = await maybeRunWithSession({ mode, cwd: outDir, out, session, interactive });
   } else if (!interactive && !out.json) {
     out.step("");
     out.step("Next steps:");
@@ -210,17 +218,27 @@ function getSessionRoot(outDir: string): string {
   return resolve(outDir, "..");
 }
 
+async function fileExists(p: string): Promise<boolean> {
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 interface MaybeRunInput {
   mode: RunMode;
   cwd: string;
   out: ReturnType<typeof makeOutput>;
   session: ActiveSession;
+  interactive: boolean;
 }
 
 async function maybeRunWithSession(
   input: MaybeRunInput,
 ): Promise<{ mode: RunMode; smokeExit?: number; loadExit?: number } | null> {
-  const { mode, cwd, out, session } = input;
+  const { mode, cwd, out, session, interactive } = input;
   if (mode === "skip") return { mode };
 
   const bin = await findK6Binary();
@@ -248,6 +266,7 @@ async function maybeRunWithSession(
     }
     const summaryPath = join(session.dir, "k6-smoke-summary.json");
     result.smokeExit = await runK6({ cwd, script: "smoke.js", summaryPath });
+    if (await fileExists(summaryPath)) session.registerArtefact("k6-smoke-summary.json");
     const digest = await digestK6Summary(summaryPath);
     if (digest) {
       allPassed.push(...digest.passed.map((t) => `smoke: ${t}`));
@@ -261,7 +280,7 @@ async function maybeRunWithSession(
     }
   }
   if (mode === "load" || mode === "both") {
-    if (mode === "both") {
+    if (mode === "both" && interactive) {
       const cont = await confirmContinue("Smoke complete. Continue with load test?");
       if (!cont) {
         await session.finalize({
@@ -278,6 +297,7 @@ async function maybeRunWithSession(
     }
     const summaryPath = join(session.dir, "k6-load-summary.json");
     result.loadExit = await runK6({ cwd, script: "load.js", summaryPath });
+    if (await fileExists(summaryPath)) session.registerArtefact("k6-load-summary.json");
     const digest = await digestK6Summary(summaryPath);
     if (digest) {
       allPassed.push(...digest.passed.map((t) => `load: ${t}`));

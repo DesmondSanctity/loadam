@@ -56,10 +56,39 @@ export async function runReport(id: string, opts: ReportOptions): Promise<void> 
     }
   }
 
+  // Pull operations from ir.json so the report can render the Swagger-like
+  // endpoint browser. Best-effort — older sessions or missing files just skip it.
+  let operations:
+    | Array<{ id: string; method: string; path: string; summary?: string; tags?: string[] }>
+    | undefined;
+  try {
+    const ir = JSON.parse(await readFile(join(dir, "ir.json"), "utf8")) as {
+      operations?: Array<{
+        id: string;
+        method: string;
+        path: string;
+        summary?: string;
+        tags?: string[];
+      }>;
+    };
+    if (Array.isArray(ir.operations) && ir.operations.length > 0) {
+      operations = ir.operations.map((o) => ({
+        id: o.id,
+        method: o.method,
+        path: o.path,
+        summary: o.summary,
+        tags: o.tags,
+      }));
+    }
+  } catch {
+    // ignore — operations are optional
+  }
+
   const html = renderReport({
     meta,
     k6Summaries: Object.keys(k6Summaries).length > 0 ? (k6Summaries as never) : undefined,
     driftMarkdown,
+    operations,
     loadamVersion: VERSION,
   });
 

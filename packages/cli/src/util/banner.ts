@@ -16,9 +16,9 @@ export function banner(): string {
   if (!useColor) {
     return `${ART}\n${TAGLINE}\n`;
   }
-  // dim cyan art, dim tagline
-  const cyan = "\x1b[36m";
+  // amber/orange art (gauge-redline brand), dim tagline
+  const amber = "\x1b[38;5;208m";
   const dim = "\x1b[2m";
   const reset = "\x1b[0m";
-  return `${cyan}${ART}${reset}\n${dim}${TAGLINE}${reset}\n`;
+  return `${amber}${ART}${reset}\n${dim}${TAGLINE}${reset}\n`;
 }

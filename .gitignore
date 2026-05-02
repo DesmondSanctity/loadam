@@ -33,6 +33,7 @@ loadam.ir.json
 
 # private dev notes / generated demo assets
 internal/
+examples/demo-out/
 
 # README/LICENSE copies created by packages/cli prepack
 packages/cli/README.md

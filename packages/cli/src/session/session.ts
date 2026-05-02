@@ -54,6 +54,8 @@ export interface ActiveSession {
   meta: SessionMeta;
   /** Add an artefact file. Path is relative to the session dir. */
   addArtefact(relPath: string, contents: string | Uint8Array): Promise<void>;
+  /** Register an artefact already written to the session dir by an external process (e.g. k6). */
+  registerArtefact(relPath: string): void;
   /** Mark complete and persist meta.json. */
   finalize(input: {
     exitCode: number;
@@ -114,6 +116,9 @@ export async function createSession(input: CreateSessionInput): Promise<ActiveSe
       const full = join(dir, relPath);
       await mkdir(join(full, "..").replace(/\/+$/, ""), { recursive: true });
       await writeFile(full, contents);
+      if (!meta.artefacts.includes(relPath)) meta.artefacts.push(relPath);
+    },
+    registerArtefact(relPath) {
       if (!meta.artefacts.includes(relPath)) meta.artefacts.push(relPath);
     },
     async finalize({ exitCode, thresholds, summary }) {

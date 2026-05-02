@@ -33,7 +33,7 @@ describe("renderReport", () => {
     const html = renderReport({ meta: BASE_META, loadamVersion: "0.2.2" });
     expect(html.startsWith("<!doctype html>")).toBe(true);
     expect(html).toContain("<title>Pet Store · test · 2026-05-01T11-32-45-smoke-pet-store</title>");
-    expect(html).toContain('class="badge ok">PASSED<');
+    expect(html).toContain('class="status-chip ok">passed<');
     expect(html).toContain("Pet Store");
     expect(html).toContain("https://api.example.com");
     expect(html).toContain("API_TOKEN");
@@ -51,7 +51,7 @@ describe("renderReport", () => {
       },
       loadamVersion: "0.2.2",
     });
-    expect(html).toContain('class="badge bad">FAILED<');
+    expect(html).toContain('class="status-chip bad">failed<');
     expect(html).toContain("✗ http_req_duration");
   });
 
@@ -60,7 +60,7 @@ describe("renderReport", () => {
       meta: { ...BASE_META, exitCode: 0, thresholds: { passed: [], failed: ["http_reqs.rate"] } },
       loadamVersion: "0.2.2",
     });
-    expect(html).toContain('class="badge bad">FAILED<');
+    expect(html).toContain('class="status-chip bad">failed<');
   });
 
   it("surfaces k6 metrics into latency section + summary cards", () => {
@@ -87,7 +87,7 @@ describe("renderReport", () => {
       k6Summaries: { smoke: k6 },
       loadamVersion: "0.2.2",
     });
-    expect(html).toContain(">Latency<");
+    expect(html).toContain(">k6 results<");
     expect(html).toContain("http_req_duration");
     expect(html).toContain("142 ms"); // p(95)
     expect(html).toContain("500 ms"); // max
@@ -149,7 +149,7 @@ describe("renderReport", () => {
   it("is fully self-contained — no external URLs except the GitHub footer link", () => {
     const html = renderReport({ meta: BASE_META, loadamVersion: "0.2.2" });
     // Strip the one allowlisted link.
-    const stripped = html.replace(/https:\/\/github\.com\/anonxhash\/loadam/g, "");
+    const stripped = html.replace(/https:\/\/github\.com\/DesmondSanctity\/loadam/g, "");
     expect(stripped).not.toMatch(/https?:\/\/(?!api\.example\.com)[^"\s]+/);
     expect(stripped).not.toContain("<script src");
     expect(stripped).not.toContain("<link rel");
@@ -171,5 +171,80 @@ describe("renderReport", () => {
     const html = renderReport({ meta: minimal, loadamVersion: "0.2.2" });
     expect(html).toContain("Untitled API");
     expect(html).toContain("—"); // target placeholder
+  });
+
+  it("shows a 'Why this failed' panel that names the failure modes", () => {
+    const k6: K6Summary = {
+      metrics: { http_req_duration: { values: { "p(95)": 800, max: 1000 } } },
+      root_group: {
+        checks: {
+          a: { name: "listPets 2xx", passes: 0, fails: 1 },
+          b: { name: "getPet 2xx", passes: 1, fails: 0 },
+        },
+      },
+    };
+    const html = renderReport({
+      meta: {
+        ...BASE_META,
+        exitCode: 99,
+        thresholds: { passed: [], failed: ["http_req_failed: rate<0.05"] },
+      },
+      k6Summaries: { smoke: k6 },
+      loadamVersion: "0.2.2",
+    });
+    expect(html).toContain('class="reason bad"');
+    expect(html).toContain("Why this failed");
+    expect(html).toContain("threshold");
+    expect(html).toContain("http_req_failed: rate&lt;0.05");
+    expect(html).toContain("1/2 operation check");
+  });
+
+  it("labels the run with which mode(s) executed (smoke + load)", () => {
+    const empty: K6Summary = { metrics: { http_req_duration: { values: { "p(95)": 50 } } } };
+    const html = renderReport({
+      meta: { ...BASE_META, flags: { mode: "both" } },
+      k6Summaries: { smoke: empty, load: empty },
+      loadamVersion: "0.2.2",
+    });
+    expect(html).toContain("test · smoke + load");
+  });
+
+  it("renders CSS-only tabs when multiple k6 summaries are present", () => {
+    const dur: K6Summary = { metrics: { http_req_duration: { values: { "p(95)": 50, max: 80 } } } };
+    const html = renderReport({
+      meta: { ...BASE_META, flags: { mode: "both" } },
+      k6Summaries: { smoke: dur, load: dur },
+      loadamVersion: "0.2.2",
+    });
+    expect(html).toContain('id="loadam-tab-smoke"');
+    expect(html).toContain('id="loadam-tab-load"');
+    expect(html).toContain('for="loadam-tab-smoke"');
+    expect(html).toContain('data-tab="smoke"');
+    expect(html).toContain('data-tab="load"');
+    expect(html).toContain("(2 runs");
+    // No JS — only HTML/CSS for tab switching.
+    expect(html).not.toContain("<script src");
+  });
+
+  it("surfaces failed per-operation checks under each k6 run", () => {
+    const k6: K6Summary = {
+      metrics: { http_req_duration: { values: { "p(95)": 200, max: 300 } } },
+      root_group: {
+        checks: {
+          a: { name: "createPet 2xx-3xx", passes: 0, fails: 1 },
+          b: { name: "listPets 2xx-3xx", passes: 1, fails: 0 },
+        },
+      },
+    };
+    const html = renderReport({
+      meta: { ...BASE_META, exitCode: 99, thresholds: { passed: [], failed: ["x"] } },
+      k6Summaries: { smoke: k6 },
+      loadamVersion: "0.2.2",
+    });
+    expect(html).toContain("Per-operation checks");
+    expect(html).toContain("createPet 2xx-3xx");
+    expect(html).toContain("listPets 2xx-3xx");
+    expect(html).toContain("1/2 passed");
+    expect(html).toContain("1 failed");
   });
 });

@@ -88,6 +88,13 @@ export async function digestK6Summary(path: string): Promise<K6SummaryDigest | n
     const failed: string[] = [];
     const metrics: Record<string, number> = {};
     for (const [name, m] of Object.entries(data.metrics ?? {})) {
+      // Skip sentinel sub-metrics emitted by the generated rig (per-op
+      // latency + status-code distributions). They exist only so k6
+      // surfaces the numbers in the summary export — adding them to the
+      // visible threshold list would drown the user in noise.
+      if (name.startsWith("loadam_op_latency") || name.startsWith("loadam_op_status")) {
+        continue;
+      }
       if (m.thresholds) {
         for (const [expr, info] of Object.entries(m.thresholds)) {
           (info.ok ? passed : failed).push(`${name}: ${expr}`);

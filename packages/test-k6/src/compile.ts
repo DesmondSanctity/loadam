@@ -51,8 +51,8 @@ export function compileK6(ir: IR, opts: CompileK6Options = {}): CompileK6Result 
   const files: Record<string, string> = {
     "config.js": emitConfigJs(ctx),
     "flow.js": emitFlowJs(ctx),
-    "smoke.js": emitSmokeJs(),
-    "load.js": emitLoadJs(),
+    "smoke.js": emitSmokeJs(ctx),
+    "load.js": emitLoadJs(ctx),
     "fixtures.json": emitFixturesJson(fixtures.byOperationId),
     "package.json": emitPackageJson(ctx),
     ".env.example": emitEnvExample(ctx),

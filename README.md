@@ -20,6 +20,8 @@ That's it. One spec → three production-grade rigs **plus** a session archive a
 
 Both are compiled from the same **Intermediate Representation (IR)** built from your spec.
 
+> **What's new in 0.2.4** — branded HTML report with a per-endpoint sidebar (live p95 + status-code distribution), filter chips (All / Failed / Flaky / Passed), three-tier overall status (`passed` ≥ 99% · `flaky` ≥ 95% · `failed` < 95%), and per-op latency/status sub-metrics emitted by generated k6 scripts. See the [CHANGELOG](CHANGELOG.md#024---2026-05-02) for the full list.
+
 ---
 
 ## Install
@@ -73,6 +75,12 @@ loadam test ./openapi.yaml --target $LOADAM_TARGET --no-interactive --json | jq 
 
 Set `LOADAM_TARGET` once per shell to drop the `--target` flag from every invocation.
 
+<p align="center">
+ <img src="https://raw.githubusercontent.com/DesmondSanctity/loadam/main/.github/assets/report-screenshot.png" alt="loadam HTML report" width="720">
+ <br>
+ <sub><i>The single-file HTML report — branded header, per-endpoint sidebar, filter chips, threshold panel.</i></sub>
+</p>
+
 ## Commands
 
 | Command                       | What it does                                                          | Output                            |
@@ -124,7 +132,7 @@ loadam report latest --open          # one-file HTML report (charts, dark mode)
 loadam clean --older-than 7d --apply # prune old runs
 ```
 
-The HTML report is a single self-contained file (no external CDNs, no JS dependencies) and is safe to drop into a CI artefact store, gh-pages, or Slack.
+The HTML report is a single self-contained file (no external CDNs, no JS dependencies) and is safe to drop into a CI artefact store, gh-pages, or Slack. It includes a per-endpoint sidebar with live p95 and status-code distribution, filter chips (All / Failed / Flaky / Passed), and a three-tier overall status (passed · flaky · failed) so you can tell at a glance whether a run is genuinely broken or just noisy.
 
 ## Why loadam
 
