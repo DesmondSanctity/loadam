@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: Xquik Social API Fixture
+  version: "1.0"
+servers:
+  - url: https://xquik.com
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    CreateTweetRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+    Tweet:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+    TweetSearchResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tweet"
+security:
+  - apiKey: []
+paths:
+  /api/v1/x/tweets/search:
+    get:
+      operationId: searchTweets
+      tags: [X]
+      summary: Search tweets
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: maxResults
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tweet search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TweetSearchResponse"
+  /api/v1/x/tweets:
+    post:
+      operationId: createTweet
+      tags: [X]
+      summary: Create a tweet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTweetRequest"
+      responses:
+        "200":
+          description: Created tweet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tweet"
+  /api/v1/x/users/{username}/timeline:
+    get:
+      operationId: getUserTimeline
+      tags: [X]
+      summary: Get user timeline
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TweetSearchResponse"

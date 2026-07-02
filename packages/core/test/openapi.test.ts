@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fromOpenApiFile, parseIR } from "../src/index.js";
 
 const PETSTORE = new URL("../../../fixtures/specs/petstore.openapi.yaml", import.meta.url).pathname;
+const XQUIK_SOCIAL = new URL("../../../fixtures/specs/xquik-social.openapi.yaml", import.meta.url).pathname;
 
 describe("openapi adapter — petstore", () => {
   it("produces a valid IR", async () => {
@@ -89,5 +90,47 @@ describe("openapi adapter — petstore", () => {
     for (const op of ir.operations) {
       expect(op.security).toEqual([{ profileId: "apiKeyAuth" }]);
     }
+  });
+
+  it("captures OpenAPI 3.1 social routes with header auth", async () => {
+    const ir = await fromOpenApiFile(XQUIK_SOCIAL);
+
+    expect(ir.meta.title).toBe("Xquik Social API Fixture");
+    expect(ir.meta.source.sourceVersion).toBe("3.1.0");
+    expect(ir.servers[0]?.url).toBe("https://xquik.com");
+
+    const apiKey = ir.auth.find((auth) => auth.id === "apiKey");
+    expect(apiKey?.kind).toBe("apiKey");
+    if (apiKey?.kind === "apiKey") {
+      expect(apiKey.in).toBe("header");
+      expect(apiKey.name).toBe("X-API-Key");
+    }
+
+    const ids = ir.operations.map((op) => op.id).sort();
+    expect(ids).toEqual(["createTweet", "getUserTimeline", "searchTweets"]);
+
+    const search = ir.operations.find((op) => op.id === "searchTweets");
+    expect(search?.method).toBe("GET");
+    expect(search?.safety).toBe("safe");
+    expect(search?.queryParams.map((param) => `${param.name}:${param.required}`)).toEqual([
+      "query:true",
+      "maxResults:false",
+    ]);
+    const searchOk = search?.responses.find((response) => response.status === 200);
+    expect(searchOk?.contentTypes?.["application/json"]?.schema).toBe(
+      "#/components/schemas/TweetSearchResponse",
+    );
+    expect(search?.security).toEqual([{ profileId: "apiKey" }]);
+
+    const create = ir.operations.find((op) => op.id === "createTweet");
+    expect(create?.method).toBe("POST");
+    expect(create?.safety).toBe("mutating");
+    expect(create?.body?.contentTypes["application/json"]?.schema).toBe(
+      "#/components/schemas/CreateTweetRequest",
+    );
+
+    const timeline = ir.operations.find((op) => op.id === "getUserTimeline");
+    expect(timeline?.pathParams[0]?.name).toBe("username");
+    expect(ir.schemas["#/components/schemas/Tweet"]).toBeDefined();
   });
 });
